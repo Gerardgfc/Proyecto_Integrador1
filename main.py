@@ -7,8 +7,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = FastAPI(debug=True)
 
-df_games_item = pd.read_csv('steam_games_items.csv')
-df_games_review = pd.read_csv('steam_games_reviews.csv')
+df_games_item = pd.read_csv('Csv/steam_games_items.csv.gz', compression='gzip', encoding='utf-8')
+df_games_review = pd.read_csv('Csv/steam_games_reviews.csv.gz', compression='gzip', encoding='utf-8')
 
 
 @app.get("/")
