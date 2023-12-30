@@ -7,8 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = FastAPI(debug=True)
 
-df_games_item = pd.read_csv('Csv/steam_games_items.csv.gz', compression='gzip', encoding='utf-8')
-df_games_review = pd.read_csv('Csv/steam_games_reviews.csv.gz', compression='gzip', encoding='utf-8')
+df = pd.read_csv("Csv/Df_Merged.csv.gz", compression='gzip', encoding='utf-8')
 
 
 @app.get("/")
@@ -26,12 +25,12 @@ def PlayTimeGenre(genre: str) -> dict:
         Año con más horas jugadas para un género específico teniendo en cuenta los generos disponibles.
     """
     genre = genre.capitalize()
-    if genre not in df_games_item.columns:
+    if genre not in df.columns:
         return {"Error": f"Género {genre} no encontrado en el dataset."}
     else:
-        genre_df = df_games_item[df_games_item[genre] == 1]
-        year_playtime_df = genre_df.groupby('year')['playtime_forever'].sum().reset_index()
-        max_playtime_year = year_playtime_df.loc[year_playtime_df['playtime_forever'].idxmax(), 'year']
+        genre_df = df[df[genre] == 1]
+        year_playtime_df = genre_df.groupby('posted_year')['playtime_forever'].sum().reset_index()
+        max_playtime_year = year_playtime_df.loc[year_playtime_df['playtime_forever'].idxmax(), 'posted_year']
         return {"Género": genre, f"Año de lanzamiento con más horas jugadas para Género {genre} :": int (max_playtime_year)} 
 
 @app.get("/UserForGenre")
@@ -44,10 +43,10 @@ def UserForGenre(genre: str) -> dict:
         Usuario que ha jugado más horas para un género específico teniendo en cuenta los generos disponibles.
     """
     genre = genre.capitalize()
-    if genre not in df_games_item.columns:
+    if genre not in df.columns:
         return {"Error": f"Género {genre} no encontrado en el dataset."}
     else:
-        genre_df = df_games_item[df_games_item[genre] == 1]
+        genre_df = df[df[genre] == 1]
         user_playtime_df = genre_df.groupby('user_id')['playtime_forever'].sum().reset_index()
         max_playtime_user = user_playtime_df.loc[user_playtime_df['playtime_forever'].idxmax(), 'user_id']
         return {"Género": genre, f"Usuario con más horas jugadas para Género {genre} :": max_playtime_user}
@@ -65,11 +64,11 @@ def UsersRecommend( year : int ):
     if year < 2010 or year > 2015:
         return {"Año": year, "Juegos más recomendados para el año dado": "No hay datos para el año dado"}
     else:
-        year_df = df_games_review[df_games_review['posted_year'] == year]
-        year_df = year_df.groupby('title')['sentiment_score'].sum().reset_index()
+        year_df = df[df['posted_year'] == year]
+        year_df = year_df.groupby('item_name')['sentiment_score'].sum().reset_index()
         year_df = year_df.sort_values(by='sentiment_score', ascending=False)
         year_df = year_df.head(3)
-        return {"Año": year, "Juegos más recomendados para el año dado": year_df['title'].tolist()}
+        return {"Año": year, "Juegos más recomendados para el año dado": year_df['item_name'].tolist()}
     
 @app.get("/UsersWorstDeveloper")
 def UsersWorstDeveloper( year : int ):
@@ -83,11 +82,11 @@ def UsersWorstDeveloper( year : int ):
     if year < 2010 or year > 2015:
         return {"Año": year, "Juegos menos recomendados para el año dado": "No hay datos para el año dado"}
     else:
-        year_df = df_games_review[df_games_review['posted_year'] == year]
-        year_df = year_df.groupby('title')['sentiment_score'].sum().reset_index()
+        year_df = df[df['posted_year'] == year]
+        year_df = year_df.groupby('item_name')['sentiment_score'].sum().reset_index()
         year_df = year_df.sort_values(by='sentiment_score', ascending=True)
         year_df = year_df.head(3)
-        return {"Año": year, "Juegos menos recomendados para el año dado": year_df['title'].tolist()}
+        return {"Año": year, "Juegos menos recomendados para el año dado": year_df['item_name'].tolist()}
 
 @app.get("/sentiment_analysis")
 def sentiment_analysis( developer: str ):
@@ -98,12 +97,12 @@ def sentiment_analysis( developer: str ):
     Returns:
         Ejemplo de retorno: {'Valve' : [Negative = 182, Neutral = 120, Positive = 278]}, en caso de que no se encuentre ningúna desarrolladora dara como rsultado error.
     """
-    df_games_review['developer'] = df_games_review['developer'].str.capitalize()
+    df['developer'] = df['developer'].str.capitalize()
     developer = developer.capitalize()
-    if developer not in df_games_review['developer'].values:
+    if developer not in df['developer'].values:
         return {developer: ["No está registrado"]}
     else:
-        developer_df = df_games_review[df_games_review['developer'] == developer]
+        developer_df = df[df['developer'] == developer]
     
         negative = len(developer_df[developer_df['sentiment_score'] == 0])
         neutral = len(developer_df[developer_df['sentiment_score'] == 1])
